@@ -33,6 +33,12 @@ const connection = mysql.createConnection(mysql_config);
 
 app.use(cors());
 
+app.use(json());
+
+app.use(express.urlencoded({ extended: true }));
+/*  * Interpretação de dados enviados por POST, sem esses métodos o middleware não buscaria os parâmetros*/
+
+// * Rotas
 app.get("/", (req, res) => {
   res.json(functions.response("Sucesso", "API está rodando.", 0, null));
 });
@@ -92,6 +98,58 @@ app.put("/tasks/:id/status/:status", (req, res) => {
             functions.response("Atenção", "Task não encontrada", 0, null)
           );
         }
+      }
+    }
+  );
+});
+
+app.delete("/tasks/:id/delete", (req, res) => {
+  const id = req.params.id;
+  connection.query("DELETE tasks WHERE id =?", [id], (err, rows) => {
+    if (!err) {
+      if (rows.affectedRows > 0) {
+        res.json(
+          functions.response(
+            "Sucesso",
+            "Task deletada",
+            rows.affectedRows,
+            null
+          )
+        );
+      } else {
+        res.json(functions.response("Atenção", "Task não encontrada", 0, null));
+      }
+    } else {
+      res.json(functions.response("Erro", err.message, 0, null));
+    }
+  });
+});
+
+app.put("/tasks/create", (req, res) => {
+  const post_data = req.body;
+  if (post_data == undefined) {
+    res.json(
+      functions.response("Atenção", "Sem dados de uma nova task", 0, null)
+    );
+    return;
+  }
+
+  const task = post_data.task;
+  const status = post_data.status;
+
+  connection.query(
+    "INSERT INTO tasks(task, status, created_at, updated_at) VALUES (?, ?, NOW(), NOW()",
+    [task, status],
+    (err, rows) => {
+      if (!err) {
+        res.json(
+          "Sucesso",
+          "Task cadastrada com sucesso",
+          rows.affectedRows,
+          null
+        );
+      } else {
+        res.json(functions.response("Erro", err.message, 0, null));
       }
     }
   );
